@@ -30,7 +30,10 @@ def call_llm(system_prompt: str, user_content: str) -> str:
         return response.choices[0].message.content.strip()
     except Exception as e:
         print(f"LLM error: {e}")
-        return "[]"
+                # Fallback so demo never shows empty results
+
+        return '[{"action": "LLM unavailable - check network", "priority": "High"}]'
+
 
 
 def parse_json(response: str) -> list:
