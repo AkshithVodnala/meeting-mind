@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.db
+*.sqlite
+.pytest_cache/
+playwright-report/
+test-results/
+.coverage
+htmlcov/
+*.log
+.DS_Store
