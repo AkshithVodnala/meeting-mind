@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Submit Form -->
+<div class="card">
+  <h2>📋 Analyze a Meeting Transcript</h2>
+
+  <input
+    type="text"
+    id="meeting-title"
+    placeholder="Meeting title (e.g. Sprint Planning July 9)"
+  />
+
+  <textarea
+    id="transcript"
+    placeholder="Paste your full meeting transcript here...
+
+Example:
+John: We need to update the login page by Friday.
+Sarah: I can handle the backend changes.
+John: Great. Also we need to fix the bug in the payment module.
+Mike: I'll take that. Should be done by Wednesday.
+Sarah: One concern — the third party API is unstable lately.
+John: Good point, let's flag that as a risk."
+  ></textarea>
+
+  <button id="submit-btn" onclick="submitMeeting()">
+    🚀 Analyze Meeting
+  </button>
+
+  <p class="error-msg" id="error-msg"></p>
+</div>
+
+<!-- Status Card (shown after submit) -->
+<div class="card" id="status-card" style="display:none;">
+  <h2>⏳ Analysis in Progress</h2>
+  <p style="font-size:13px; color:#8b949e; margin-bottom:14px;" id="status-title"></p>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <span class="spinner" id="spinner"></span>
+    <span id="status-text" style="font-size:14px;">Starting...</span>
+  </div>
+  <div style="margin-top:16px;" id="view-result-wrap" style="display:none;">
+    <a id="view-result-link" href="#">
+      <button>View Full Report →</button>
+    </a>
+  </div>
+</div>
+
+<!-- Past Meetings -->
+<div class="card">
+  <h2>🕐 Past Meetings</h2>
+  {% if jobs %}
+    {% for job in jobs %}
+    <div class="job-row">
+      <div>
+        <div class="job-title">{{ job.title }}</div>
+        <div class="job-date">{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="status-badge status-{{ job.status }}">
+          {{ job.status }}
+        </span>
+        {% if job.status == "complete" %}
+        <a href="/result/{{ job.id }}">View →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      No meetings analyzed yet. Paste a transcript above to get started.
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  let pollingInterval = null;
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  function statusLabel(status) {
+    const labels = {
+      'pending':              '⏳ Waiting to start...',
+      'extracting_actions':   '📝 Extracting action items...',
+      'assigning_owners':     '👤 Assigning owners...',
+      'detecting_deadlines':  '📅 Detecting deadlines...',
+      'detecting_risks':      '⚠️  Detecting risks and blockers...',
+      'summarizing':          '✍️  Writing summary...',
+      'complete':             '✅ Analysis complete!',
+      'failed':               '❌ Analysis failed'
+    };
+    return labels[status] || status;
+  }
+
+  async function submitMeeting() {
+    hideError();
+
+    const title = document.getElementById('meeting-title').value.trim()
+      || 'Untitled Meeting';
+    const transcript = document.getElementById('transcript').value.trim();
+
+    if (!transcript) {
+      showError('Please paste a meeting transcript.');
+      return;
+    }
+
+    if (transcript.length < 50) {
+      showError('Transcript too short. Please paste the full meeting transcript.');
+      return;
+    }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      const response = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, transcript })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        showError(err.detail || 'Something went wrong.');
+        btn.disabled = false;
+        btn.textContent = '🚀 Analyze Meeting';
+        return;
+      }
+
+      const job = await response.json();
+
+      // Show status card
+      document.getElementById('status-card').style.display = 'block';
+      document.getElementById('status-title').textContent = title;
+      document.getElementById('status-text').textContent = statusLabel('pending');
+
+      // Start polling
+      startPolling(job.id);
+
+    } catch (err) {
+      showError('Network error. Is the server running?');
+      btn.disabled = false;
+      btn.textContent = '🚀 Analyze Meeting';
+    }
+  }
+
+  function startPolling(jobId) {
+    pollingInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/status/${jobId}`);
+        const data = await res.json();
+
+        document.getElementById('status-text').textContent =
+          statusLabel(data.status);
+
+        if (data.status === 'complete') {
+          clearInterval(pollingInterval);
+          document.getElementById('spinner').style.display = 'none';
+          const wrap = document.getElementById('view-result-wrap');
+          wrap.style.display = 'block';
+          const link = document.getElementById('view-result-link');
+          link.href = `/result/${jobId}`;
+          setTimeout(() => location.reload(), 2000);
+        }
+
+        if (data.status === 'failed') {
+          clearInterval(pollingInterval);
+          document.getElementById('spinner').style.display = 'none';
+          showError(data.error_message || 'Analysis failed. Check server logs.');
+        }
+
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 3000);
+  }
+</script>
+
+{% endblock %}
