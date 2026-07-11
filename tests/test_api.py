@@ -1,6 +1,4 @@
-import pytest
 from unittest.mock import patch
-from app.models import MeetingJob
 
 
 # ── Health Check ───────────────────────────────────────────────

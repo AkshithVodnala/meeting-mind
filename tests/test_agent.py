@@ -1,16 +1,12 @@
-import pytest
 from unittest.mock import patch
 from app.agent import (
     parse_json,
-    call_llm,
     step_extract_actions,
     step_assign_owners,
     step_detect_deadlines,
     step_detect_risks,
     step_summarize,
-    update_status
 )
-from app.models import MeetingJob
 
 
 # ── parse_json tests ───────────────────────────────────────────

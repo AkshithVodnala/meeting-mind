@@ -241,29 +241,29 @@ def run_analysis(job_id: str, transcript: str, session: Session):
 
     try:
         # Step 1: Extract action items
-        print(f"[Agent] Step 1: Extracting action items...")
+        print("[Agent] Step 1: Extracting action items...")
         update_status(session, job, "extracting_actions")
         action_items = step_extract_actions(transcript)
         print(f"[Agent] Found {len(action_items)} action items")
 
         # Step 2: Assign owners
-        print(f"[Agent] Step 2: Assigning owners...")
+        print("[Agent] Step 2: Assigning owners...")
         update_status(session, job, "assigning_owners")
         action_items = step_assign_owners(transcript, action_items)
 
         # Step 3: Detect deadlines
-        print(f"[Agent] Step 3: Detecting deadlines...")
+        print("[Agent] Step 3: Detecting deadlines...")
         update_status(session, job, "detecting_deadlines")
         action_items = step_detect_deadlines(transcript, action_items)
 
         # Step 4: Detect risks
-        print(f"[Agent] Step 4: Detecting risks...")
+        print("[Agent] Step 4: Detecting risks...")
         update_status(session, job, "detecting_risks")
         risks = step_detect_risks(transcript)
-        print(f"[Agent] Found {len(risks)} risks")
+        print("[Agent] Found {len(risks)} risks")
 
         # Step 5: Summarize
-        print(f"[Agent] Step 5: Generating summary...")
+        print("[Agent] Step 5: Generating summary...")
         update_status(session, job, "summarizing")
         summary, score = step_summarize(transcript, action_items, risks)
 
