@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <h2 style="margin-bottom:6px;">{{ job.title }}</h2>
+      <p style="font-size:12px; color:#8b949e;">
+        {{ job.created_at.strftime('%Y-%m-%d %H:%M') }}
+      </p>
+    </div>
+    <span class="status-badge status-{{ job.status }}">
+      {{ job.status }}
+    </span>
+  </div>
+</div>
+
+{% if job.status == "complete" and result %}
+
+<!-- Summary + Score -->
+<div class="card">
+  <div class="score-wrap">
+    <div class="score-circle
+      {% if result.productivity_score >= 70 %}score-good
+      {% elif result.productivity_score >= 40 %}score-medium
+      {% else %}score-bad{% endif %}">
+      {{ result.productivity_score }}
+    </div>
+    <div>
+      <div style="font-size:13px; color:#8b949e; margin-bottom:4px;">
+        Productivity Score
+      </div>
+      <div style="font-size:13px; color:#e6edf3;">
+        {% if result.productivity_score >= 70 %}
+          Great meeting — clear decisions and ownership.
+        {% elif result.productivity_score >= 40 %}
+          Average meeting — some items need more clarity.
+        {% else %}
+          Poor meeting — no clear owners or deadlines set.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Summary</div>
+  <p class="summary-text">{{ result.summary }}</p>
+</div>
+
+<!-- Action Items -->
+<div class="card">
+  <div class="section-title">
+    Action Items ({{ result.get_action_items()|length }})
+  </div>
+
+  {% if result.get_action_items() %}
+    {% for item in result.get_action_items() %}
+    <div class="action-card">
+      <div>
+        <div class="action-text">{{ item.action }}</div>
+        <div class="meta">
+          👤 {{ item.owner if item.owner else 'Unassigned' }}
+          &nbsp;·&nbsp;
+          📅 {{ item.deadline if item.deadline else 'No deadline' }}
+        </div>
+      </div>
+      <span class="badge badge-{{ item.priority | lower if item.priority else 'unknown' }}">
+        {{ item.priority if item.priority else 'Unknown' }}
+      </span>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">No action items found.</div>
+  {% endif %}
+</div>
+
+<!-- Risks -->
+<div class="card">
+  <div class="section-title">
+    Risks & Blockers ({{ result.get_risks()|length }})
+  </div>
+
+  {% if result.get_risks() %}
+    {% for risk in result.get_risks() %}
+    <div class="risk-card">
+      <div class="risk-text">⚠️ {{ risk.risk }}</div>
+      <div class="risk-meta">
+        Raised by: {{ risk.mentioned_by if risk.mentioned_by else 'Unknown' }}
+        &nbsp;·&nbsp;
+        <span class="badge badge-{{ risk.severity | lower if risk.severity else 'unknown' }}">
+          {{ risk.severity if risk.severity else 'Unknown' }}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">No risks or blockers found.</div>
+  {% endif %}
+</div>
+
+{% elif job.status == "failed" %}
+
+<!-- Failed State -->
+<div class="card">
+  <div class="empty-state">
+    <p style="color:#ff7b72; font-size:16px; margin-bottom:8px;">
+      ❌ Analysis Failed
+    </p>
+    <p style="color:#8b949e;">
+      {{ job.error_message or 'An unexpected error occurred.' }}
+    </p>
+  </div>
+</div>
+
+{% else %}
+
+<!-- Still Running State -->
+<div class="card">
+  <div class="empty-state">
+    <span class="spinner"></span>
+    <p style="margin-top:12px; color:#58a6ff;">
+      Analysis in progress... please wait.
+    </p>
+    <p style="color:#8b949e; font-size:12px; margin-top:6px;">
+      Current status: {{ job.status }}
+    </p>
+  </div>
+</div>
+
+<script>
+  // Auto refresh every 4 seconds until complete
+  setTimeout(() => location.reload(), 4000);
+</script>
+
+{% endif %}
+
+<!-- Back Button -->
+<div style="margin-top:8px;">
+  <a href="/">
+    <button style="background:#21262d; color:#e6edf3;">
+      ← Back to Home
+    </button>
+  </a>
+</div>
+
+{% endblock %}
